@@ -1,6 +1,8 @@
 # Dockerfile
 FROM node:18 AS builder
 
+RUN npm install -g pnpm
+
 WORKDIR /app
 COPY . .
 RUN npm install
