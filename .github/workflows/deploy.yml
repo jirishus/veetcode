@@ -21,7 +21,7 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          source: "Dockerfile,nginx,dist"
+          source: "."
           target: "/home/${{ secrets.DROPLET_USER }}/my-vite-app"
 
       - name: Deploy via SSH
