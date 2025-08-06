@@ -1,5 +1,5 @@
 # Dockerfile
-FROM node:18 AS builder
+FROM node:20.19.0 AS builder
 
 RUN npm install -g pnpm
 
