@@ -204,8 +204,11 @@ function App() {
       {/* CTA Section */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 md:px-8 py-20 text-center">
         <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-3xl p-12 border border-purple-500/20">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          {/* <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Ready to Level Up?
+          </h2> */}
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Crack Tech Interviews?
           </h2>
           <p className="text-xl text-slate-300 mb-8 leading-relaxed">
             Join the community of passionate developers and start your journey to coding mastery today.
