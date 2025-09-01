@@ -1,6 +1,13 @@
-version: "3"
 services:
-  vite-app:
-    build: .
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: viewtune:local
+    container_name: viewtune
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "127.0.0.1:3000:3000"   # host NGINX proxies to this
+    # env_file: .env            # (optional)
+    # environment:              # (optional)
+    #   NODE_ENV: production

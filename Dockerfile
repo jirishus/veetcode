@@ -1,22 +1,30 @@
-# Step 1: Builder
-FROM node:20.19.0-alpine AS builder
-
-# Install pnpm
-RUN npm install -g pnpm
+# Multi-stage build for production
+FROM node:20.19.0 AS build
 
 WORKDIR /app
 
-# Copy and install deps
-COPY . .
-RUN pnpm install
-RUN pnpm run build
+# Copy package files
+COPY package*.json ./
 
-# Step 2: Serve with nginx
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the app
+RUN npm run build
+
+# Production stage
 FROM nginx:alpine
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+# Copy built app to nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy custom nginx config if needed
+# COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose port 80
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
