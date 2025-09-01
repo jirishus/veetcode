@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: viewtune:local
-    container_name: viewtune
+    image: veetcode:local
+    container_name: veetcode
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"   # host NGINX proxies to this
