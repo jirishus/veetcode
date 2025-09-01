@@ -1,37 +1,103 @@
-name: Deploy to DigitalOcean Droplet
+# .github/workflows/deploy.yml
+name: Deploy to DigitalOcean
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]  # Change to your default branch
+  pull_request:
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t my-vite-app .
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.0'
+        cache: 'npm'
 
-      - name: Copy files via SSH
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          source: "."
-          target: "/home/${{ secrets.DROPLET_USER }}/my-vite-app"
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.DROPLET_IP }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          script: |
-            cd ~/my-vite-app
-            docker build -t vite-app .
-            docker stop vite-app || true && docker rm vite-app || true
-            docker run -d --name vite-app -p 80:80 vite-app
+    - name: Build application
+      run: npm run build
+
+    - name: Build Docker image
+      run: |
+        docker build -t veetcode:${{ github.sha }} .
+        docker tag veetcode:${{ github.sha }} veetcode:latest
+
+    - name: Save Docker image
+      run: docker save veetcode:latest | gzip > veetcode.tar.gz
+
+    - name: Deploy to DigitalOcean
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.DO_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # Stop and remove existing container
+          docker stop veetcode || true
+          docker rm veetcode || true
+          
+          # Remove old image
+          docker rmi veetcode:latest || true
+
+    - name: Copy Docker image to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.DO_PRIVATE_KEY }}
+        port: 22
+        source: "veetcode.tar.gz"
+        target: "~/"
+
+    - name: Load and run Docker container
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DO_HOST }}
+        username: ${{ secrets.DO_USERNAME }}
+        key: ${{ secrets.DO_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # Create app directory in home folder
+          mkdir -p ~/veetcode
+          cd ~/veetcode
+          
+          # Move the uploaded tar file to the app directory
+          mv ~/veetcode.tar.gz ~/veetcode/
+          
+          # Load Docker image
+          docker load < veetcode.tar.gz
+          
+          # Stop and remove existing container
+          docker stop veetcode || true
+          docker rm veetcode || true
+          
+          # Remove old image  
+          docker rmi veetcode:old || true
+          
+          # Tag current image as old before loading new one
+          docker tag veetcode:latest veetcode:old || true
+          
+          # Run new container
+          docker run -d \
+            --name veetcode \
+            --restart unless-stopped \
+            -p 3000:80 \
+            veetcode:latest
+          
+          # Clean up
+          rm veetcode.tar.gz
+          docker rmi veetcode:old || true
+          
+          # Verify container is running
+          docker ps | grep veetcode
